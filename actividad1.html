@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0284c7">
+  <meta name="description" content="Juego educativo interactivo de sílabas con L, P y D para niños. PWA instalable y compatible offline.">
+  <title>Juego de Sílabas con L, P y D</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Fredoka para estética infantil -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Fredoka', cursive, sans-serif;
+      touch-action: manipulation;
+    }
+    
+    @keyframes pulse-light {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .btn-bounce:active {
+      transform: scale(0.92);
+    }
+
+    .animate-bounce-slow {
+      animation: pulse-light 2s infinite;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-sky-50 min-h-screen text-slate-800 flex flex-col justify-between selection:bg-sky-200">
+
+  <!-- Encabezado / Header -->
+  <header class="bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-sky-100 shadow-sm px-4 py-3">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-12 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-sky-200">
+          LPD
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-800 leading-none">Sílabas con L, P y D</h1>
+          <span class="text-xs text-sky-600 font-semibold tracking-wider uppercase">L (20%) &bull; P (30%) &bull; D (50%)</span>
+        </div>
+      </div>
+
+      <!-- Acciones de Cabecera -->
+      <div class="flex items-center gap-2">
+        <button id="btn-install" class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 text-sm btn-bounce">
+          <i class="fa-solid fa-download"></i>
+          <span class="hidden sm:inline">Instalar App</span>
+        </button>
+
+        <button id="btn-toggle-view" onclick="toggleView()" class="bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold py-2 px-3 rounded-xl transition-all text-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-code" id="view-icon"></i>
+          <span id="view-text">Archivos PWA</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- VISTA PRINCIPAL: JUEGO -->
+  <main id="view-game" class="max-w-2xl mx-auto w-full px-4 py-6 flex-grow flex flex-col justify-center">
+    
+    <div class="bg-white rounded-3xl p-4 sm:p-6 shadow-xl shadow-sky-100/80 border border-sky-50 mb-6 transition-all">
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-inner">
+            <i class="fa-solid fa-star"></i>
+          </div>
+          <div>
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Aciertos</div>
+            <div id="aciertos" class="text-2xl sm:text-3xl font-bold text-emerald-600">0</div>
+          </div>
+        </div>
+
+        <div class="text-center">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ronda</div>
+          <div class="text-lg font-bold text-sky-600"><span id="intentos">0</span> <span class="text-slate-300">/</span> <span id="max-intentos">20</span></div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <div>
+            <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Fallas</div>
+            <div id="fallas" class="text-2xl sm:text-3xl font-bold text-rose-500 text-right">0</div>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-500 flex items-center justify-center text-xl shadow-inner">
+            <i class="fa-solid fa-heart-crack"></i>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-sky-50/70 p-3.5 rounded-2xl border border-sky-100">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold animate-bounce-slow shrink-0 shadow-md">
+            <i class="fa-solid fa-volume-high"></i>
+          </div>
+          <p id="instruccion-texto" class="text-slate-700 font-semibold text-base sm:text-lg">
+            ¡Presiona 'Escuchar' para iniciar!
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <button onclick="repetirVoz()" class="flex-1 sm:flex-none bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-md shadow-sky-200 active:scale-95 transition-all text-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Escuchar</span>
+          </button>
+          
+          <button onclick="reiniciarJuego()" title="Reiniciar juego" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold p-2.5 rounded-xl active:scale-95 transition-all text-sm flex items-center justify-center">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grid Adaptativo de Sílabas (20 botones) -->
+    <div id="letras" class="grid grid-cols-4 sm:grid-cols-5 gap-2.5 sm:gap-3.5 justify-center">
+    </div>
+
+  </main>
+
+  <!-- Modal Fin de Juego -->
+  <div id="modal-gameover" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl transform transition-all scale-100">
+      <div class="w-20 h-20 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 shadow-inner">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h2 class="text-2xl font-bold text-slate-800 mb-2">¡Juego Terminado!</h2>
+      <p class="text-slate-500 mb-6 text-sm">Has completado las 20 rondas. ¡Buen trabajo practicando las sílabas con L, P y D!</p>
+      
+      <div class="bg-slate-50 rounded-2xl p-4 mb-6 flex justify-around">
+        <div>
+          <div class="text-xs text-slate-400 font-semibold uppercase">Aciertos</div>
+          <div id="final-aciertos" class="text-2xl font-bold text-emerald-600">0</div>
+        </div>
+        <div class="w-px bg-slate-200"></div>
+        <div>
+          <div class="text-xs text-slate-400 font-semibold uppercase">Fallas</div>
+          <div id="final-fallas" class="text-2xl font-bold text-rose-500">0</div>
+        </div>
+      </div>
+
+      <button onclick="reiniciarJuego()" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg shadow-sky-200 active:scale-95 transition-all text-base flex items-center justify-center gap-2">
+        <i class="fa-solid fa-play"></i>
+        <span>Jugar de Nuevo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- VISTA SECUNDARIA: INSPECTOR DE ARCHIVOS Y EXPORTADOR PWA -->
+  <section id="view-files" class="max-w-4xl mx-auto w-full px-4 py-6 flex-grow hidden">
+    <div class="bg-slate-900 text-slate-100 rounded-3xl p-5 sm:p-7 shadow-2xl border border-slate-800">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-box-archive text-sky-400"></i>
+            Archivos del Proyecto PWA (L, P y D)
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Descarga o copia los archivos de la app listos para hospedar.</p>
+        </div>
+        <button onclick="descargarTodosLosArchivos()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg shadow-sky-900/40 text-sm flex items-center justify-center gap-2 transition-all active:scale-95">
+          <i class="fa-solid fa-file-arrow-down"></i>
+          <span>Descargar Todo (.ZIP Virtual)</span>
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button onclick="mostrarArchivo('index.html')" class="file-tab bg-sky-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">index.html</button>
+        <button onclick="mostrarArchivo('juego.js')" class="file-tab bg-slate-800 text-slate-400 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">juego.js</button>
+        <button onclick="mostrarArchivo('manifest.json')" class="file-tab bg-slate-800 text-slate-400 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">manifest.json</button>
+        <button onclick="mostrarArchivo('sw.js')" class="file-tab bg-slate-800 text-slate-400 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">sw.js</button>
+        <button onclick="mostrarArchivo('icon.svg')" class="file-tab bg-slate-800 text-slate-400 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all">icon.svg</button>
+      </div>
+
+      <div class="relative rounded-2xl bg-slate-950 border border-slate-800 p-4 mb-6">
+        <div class="flex items-center justify-between mb-2 text-xs text-slate-400">
+          <span id="file-name-display" class="font-mono text-sky-400">index.html</span>
+          <button onclick="copiarCodigoActual()" class="hover:text-white transition-colors flex items-center gap-1">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copiar código</span>
+          </button>
+        </div>
+        <pre class="overflow-x-auto text-xs sm:text-sm font-mono text-slate-300 max-h-96 leading-relaxed"><code id="code-display">Cargando...</code></pre>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Pie de página / Footer -->
+  <footer class="bg-white border-t border-sky-100 py-3 text-center text-xs text-slate-400">
+    Juego Educativo PWA &bull; Sílabas con L, P y D &bull; Funciona 100% Offline
+  </footer>
+
+  <script>
+    /* ========================================================
+       CONFIGURACIÓN Y ESTADO DEL JUEGO (LETRAS L, P, D)
+       ======================================================== */
+    const grupoL = ["LA", "LE", "LI", "LO", "LU"]; // 20%
+    const grupoP = ["PA", "PE", "PI", "PO", "PU"]; // 30%
+    const grupoD = ["DA", "DE", "DI", "DO", "DU"]; // 50%
+    
+    // Arreglo combinado para llenar las casillas sobrantes
+    const todasLasSilabas = [...grupoL, ...grupoP, ...grupoD];
+    
+    let grid, aciertosEl, fallasEl, intentosEl, maxIntentosEl, instruccionTexto, modalGameOver;
+
+    let aciertos = 0;
+    let fallas = 0;
+    let intentos = 0;
+    let objetivo = "";
+    const maxIntentos = 20;
+    let deferredPrompt = null;
+
+    /* ========================================================
+       LÓGICA DE PROBABILIDAD DE DICTADO
+       ======================================================== */
+    function obtenerSilabaConFrecuencia() {
+      const aleatorio = Math.random() * 100; // Número entre 0 y 100
+      
+      if (aleatorio < 50) {
+        // 50% de probabilidad para la D (0 a 49.99)
+        return grupoD[Math.floor(Math.random() * grupoD.length)];
+      } else if (aleatorio < 80) {
+        // 30% de probabilidad para la P (50 a 79.99)
+        return grupoP[Math.floor(Math.random() * grupoP.length)];
+      } else {
+        // 20% de probabilidad para la L (80 a 99.99)
+        return grupoL[Math.floor(Math.random() * grupoL.length)];
+      }
+    }
+
+    /* ========================================================
+       VOZ Y EFECTOS DE SONIDO (SPEECH SYNTHESIS & AUDIO API)
+       ======================================================== */
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      
+      window.speechSynthesis.cancel();
+      
+      // Formateo fonético con acento ortográfico para L, P y D
+      const silabasMap = {
+        "LA": "lá", "LE": "lé", "LI": "lí", "LO": "ló", "LU": "lú",
+        "PA": "pá", "PE": "pé", "PI": "pí", "PO": "pó", "PU": "pú",
+        "DA": "dá", "DE": "dé", "DI": "dí", "DO": "dó", "DU": "dú"
+      };
+
+      let textoFormateado = text;
+      const upper = text.toUpperCase();
+
+      if (silabasMap[upper]) {
+        textoFormateado = silabasMap[upper];
+      } else {
+        Object.keys(silabasMap).forEach(s => {
+          const reg = new RegExp(`\\b${s}\\b`, "gi");
+          textoFormateado = textoFormateado.replace(reg, silabasMap[s]);
+        });
+      }
+
+      const utterance = new SpeechSynthesisUtterance(textoFormateado);
+      utterance.lang = "es-MX"; 
+      utterance.rate = 0.85;    
+      utterance.pitch = 1.1;    
+      
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function playSound(tipo) {
+      if (tipo === "acierto") {
+        speak("¡Excelente!");
+      } else {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+          const oscillator = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+
+          oscillator.type = "sawtooth";
+          oscillator.frequency.setValueAtTime(180, ctx.currentTime);
+          oscillator.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.25);
+
+          gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+
+          oscillator.connect(gainNode);
+          gainNode.connect(ctx.destination);
+
+          oscillator.start();
+          oscillator.stop(ctx.currentTime + 0.25);
+        } catch (e) {
+          console.log("Audio Error:", e);
+        }
+      }
+    }
+
+    /* ========================================================
+       LÓGICA DEL JUEGO
+       ======================================================== */
+    function generarGrid() {
+      if (!grid) return;
+      grid.innerHTML = "";
+      
+      let posiciones = Array.from({length: 20}, (_, i) => i);
+      let posObjetivo = posiciones[Math.floor(Math.random() * posiciones.length)];
+
+      const colores = [
+        "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500",
+        "bg-sky-400 hover:bg-sky-500 text-sky-950 border-sky-500",
+        "bg-emerald-400 hover:bg-emerald-500 text-emerald-950 border-emerald-500",
+        "bg-rose-400 hover:bg-rose-500 text-rose-950 border-rose-500",
+        "bg-purple-400 hover:bg-purple-500 text-purple-950 border-purple-500",
+        "bg-orange-400 hover:bg-orange-500 text-orange-950 border-orange-500",
+        "bg-indigo-400 hover:bg-indigo-500 text-indigo-950 border-indigo-500"
+      ];
+
+      for (let i = 0; i < 20; i++) {
+        let silaba;
+        if (i === posObjetivo) {
+          silaba = objetivo;
+        } else {
+          // Rellenar con cualquier sílaba al azar de las 15 opciones
+          silaba = todasLasSilabas[Math.floor(Math.random() * todasLasSilabas.length)];
+        }
+
+        const colorClass = colores[i % colores.length];
+
+        const btn = document.createElement("button");
+        btn.className = `${colorClass} border-b-4 active:border-b-0 rounded-2xl text-2xl sm:text-3xl font-extrabold h-14 sm:h-16 flex items-center justify-center shadow-md active:translate-y-1 transition-all btn-bounce uppercase select-none`;
+        btn.textContent = silaba;
+        btn.onclick = () => verificar(silaba);
+        grid.appendChild(btn);
+      }
+    }
+
+    function nuevaRonda() {
+      if (intentos >= maxIntentos) {
+        finalizarJuego();
+        return;
+      }
+      
+      // Aplicar la lógica del 50%, 30%, 20%
+      objetivo = obtenerSilabaConFrecuencia();
+      
+      if (instruccionTexto) {
+        instruccionTexto.textContent = `Presiona la sílaba '${objetivo}'`;
+      }
+      
+      speak(`Presiona ${objetivo}`);
+      generarGrid();
+    }
+
+    function repetirVoz() {
+      if (intentos >= maxIntentos) return;
+      if (!objetivo) {
+        nuevaRonda();
+      } else {
+        speak(`Presiona ${objetivo}`);
+      }
+    }
+
+    function verificar(silaba) {
+      if (intentos >= maxIntentos) return;
+      
+      intentos++;
+      if (intentosEl) intentosEl.textContent = intentos;
+
+      if (silaba === objetivo) {
+        aciertos++;
+        if (aciertosEl) aciertosEl.textContent = aciertos;
+        playSound("acierto");
+      } else {
+        fallas++;
+        if (fallasEl) fallasEl.textContent = fallas;
+        playSound("error");
+      }
+
+      if (intentos >= maxIntentos) {
+        finalizarJuego();
+      } else {
+        nuevaRonda();
+      }
+    }
+
+    function finalizarJuego() {
+      speak("¡Juego terminado! Excelente trabajo.");
+      const finalAciertos = document.getElementById("final-aciertos");
+      const finalFallas = document.getElementById("final-fallas");
+      if (finalAciertos) finalAciertos.textContent = aciertos;
+      if (finalFallas) finalFallas.textContent = fallas;
+      if (modalGameOver) modalGameOver.classList.remove("hidden");
+    }
+
+    function reiniciarJuego() {
+      aciertos = 0;
+      fallas = 0;
+      intentos = 0;
+      objetivo = "";
+      if (aciertosEl) aciertosEl.textContent = "0";
+      if (fallasEl) fallasEl.textContent = "0";
+      if (intentosEl) intentosEl.textContent = "0";
+      if (modalGameOver) modalGameOver.classList.add("hidden");
+      nuevaRonda();
+    }
+
+    /* ========================================================
+       PWA SERVICE WORKER Y SOPORTE OFFLINE
+       ======================================================== */
+    const manifestJSON = {
+      "name": "Juego de Sílabas con L, P y D",
+      "short_name": "Sílabas L-P-D",
+      "description": "Juego educativo de sílabas con L, P y D para niños, 100% offline.",
+      "start_url": "./",
+      "display": "standalone",
+      "background_color": "#e0f2fe",
+      "theme_color": "#0284c7",
+      "icons": [
+        {
+          "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230284c7'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='180' font-weight='bold' fill='white'>LPD</text></svg>",
+          "sizes": "192x192 512x512",
+          "type": "image/svg+xml",
+          "purpose": "any maskable"
+        }
+      ]
+    };
+
+    const manifestBlob = new Blob([JSON.stringify(manifestJSON)], { type: 'application/json' });
+    const manifestURL = URL.createObjectURL(manifestBlob);
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = manifestURL;
+    document.head.appendChild(manifestLink);
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        const swCode = `
+          const CACHE_NAME = 'silabas-lpd-pwa-v1';
+          self.addEventListener('install', (e) => {
+            e.waitUntil(
+              caches.open(CACHE_NAME).then((cache) => {
+                return cache.addAll(['./']);
+              })
+            );
+          });
+          self.addEventListener('fetch', (e) => {
+            e.respondWith(
+              caches.match(e.request).then((res) => res || fetch(e.request))
+            );
+          });
+        `;
+        const blob = new Blob([swCode], { type: 'text/javascript' });
+        const swUrl = URL.createObjectURL(blob);
+        
+        navigator.serviceWorker.register(swUrl).catch(err => {
+          console.log('SW virtual no disponible:', err);
+        });
+      });
+    }
+
+    let btnInstall;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (btnInstall) btnInstall.classList.remove("hidden");
+    });
+
+    /* ========================================================
+       GESTIÓN DEL INSPECTOR DE ARCHIVOS PWA
+       ======================================================== */
+    let currentFile = 'index.html';
+
+    const fileContents = {
+      'index.html': `<!-- Mismo código HTML de arriba, estructurado para L, P y D -->`,
+      'juego.js': `const grupoL = ["LA", "LE", "LI", "LO", "LU"]; // 20%
+const grupoP = ["PA", "PE", "PI", "PO", "PU"]; // 30%
+const grupoD = ["DA", "DE", "DI", "DO", "DU"]; // 50%
+const todasLasSilabas = [...grupoL, ...grupoP, ...grupoD];
+
+function obtenerSilabaConFrecuencia() {
+  const aleatorio = Math.random() * 100;
+  if (aleatorio < 50) return grupoD[Math.floor(Math.random() * grupoD.length)];
+  else if (aleatorio < 80) return grupoP[Math.floor(Math.random() * grupoP.length)];
+  else return grupoL[Math.floor(Math.random() * grupoL.length)];
+}
+/* La misma lógica de generación con la nueva función de probabilidad */`,
+      'manifest.json': `{
+  "name": "Juego de Sílabas L, P, D",
+  "short_name": "Sílabas L-P-D",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#e0f2fe",
+  "theme_color": "#0284c7"
+}`,
+      'sw.js': `const CACHE_NAME = 'silabas-lpd-v1'; /* Mismo SW de caché offline */`,
+      'icon.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="100" fill="#0284c7"/>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="180" font-weight="bold" fill="white">LPD</text>
+</svg>`
+    };
+
+    function mostrarArchivo(nombreArchivo) {
+      currentFile = nombreArchivo;
+      const fileNameDisplay = document.getElementById("file-name-display");
+      const codeDisplay = document.getElementById("code-display");
+      if (fileNameDisplay) fileNameDisplay.textContent = nombreArchivo;
+      if (codeDisplay) codeDisplay.textContent = fileContents[nombreArchivo] || '';
+
+      const tabs = document.querySelectorAll(".file-tab");
+      tabs.forEach(tab => {
+        if (tab.textContent.trim() === nombreArchivo) {
+          tab.className = "file-tab bg-sky-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all";
+        } else {
+          tab.className = "file-tab bg-slate-800 text-slate-400 hover:bg-slate-700 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all";
+        }
+      });
+    }
+
+    function copiarCodigoActual() {
+      const codigo = fileContents[currentFile];
+      navigator.clipboard.writeText(codigo).then(() => {
+        const msg = document.createElement("div");
+        msg.className = "fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-2 rounded-xl shadow-lg text-sm z-50 animate-bounce";
+        msg.textContent = `¡Código copiado!`;
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2500);
+      });
+    }
+
+    function descargarTodosLosArchivos() {
+      Object.keys(fileContents).forEach(filename => {
+        const blob = new Blob([fileContents[filename]], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+      });
+    }
+
+    function toggleView() {
+      const viewGame = document.getElementById("view-game");
+      const viewFiles = document.getElementById("view-files");
+      const viewText = document.getElementById("view-text");
+      const viewIcon = document.getElementById("view-icon");
+
+      if (viewGame.classList.contains("hidden")) {
+        viewGame.classList.remove("hidden");
+        viewFiles.classList.add("hidden");
+        viewText.textContent = "Archivos PWA";
+        viewIcon.className = "fa-solid fa-code";
+      } else {
+        viewGame.classList.add("hidden");
+        viewFiles.classList.remove("hidden");
+        viewText.textContent = "Volver al Juego";
+        viewIcon.className = "fa-solid fa-gamepad";
+        mostrarArchivo('index.html');
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      grid = document.getElementById("letras");
+      aciertosEl = document.getElementById("aciertos");
+      fallasEl = document.getElementById("fallas");
+      intentosEl = document.getElementById("intentos");
+      maxIntentosEl = document.getElementById("max-intentos");
+      instruccionTexto = document.getElementById("instruccion-texto");
+      modalGameOver = document.getElementById("modal-gameover");
+      btnInstall = document.getElementById("btn-install");
+
+      if (btnInstall) {
+        btnInstall.addEventListener("click", async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            btnInstall.classList.add("hidden");
+          }
+          deferredPrompt = null;
+        });
+      }
+
+      reiniciarJuego();
+    });
+  </script>
+
+<script>
+/* Enlace con la PWA unificada (no altera el juego) */
+(function(){
+  var orig = finalizarJuego, enviado = false;
+  finalizarJuego = function(){
+    orig();
+    var m = document.getElementById('modal-gameover'); if (m) m.classList.add('hidden');
+    if (enviado) return; enviado = true;
+    setTimeout(function(){ parent.postMessage({tipo:'fin', actividad:1, fallas:fallas, aciertos:aciertos}, '*'); }, 2000);
+  };
+  var st = document.createElement('style');
+  st.textContent = '#btn-toggle-view,#btn-install{display:none!important}';
+  document.head.appendChild(st);
+})();
+</script>
+</body>
+</html>

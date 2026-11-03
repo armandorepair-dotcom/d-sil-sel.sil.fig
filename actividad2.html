@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rompecabezas: DADO</title>
+    <style>
+        /* Estilos base sin dependencias externas */
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f0fdfa; /* Tono agua muy claro */
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            touch-action: manipulation;
+            overflow: hidden; /* Prevenir scroll accidental en móviles */
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15px;
+        }
+
+        /* Encabezado y botones */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            width: 320px;
+            padding: 0 10px;
+            margin-bottom: 10px;
+        }
+        button {
+            font-family: inherit;
+            font-weight: bold;
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.1s;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none !important;
+        }
+        .btn-escuchar {
+            background-color: #facc15;
+            color: #713f12;
+            box-shadow: 0 4px 0 #b45309;
+        }
+        .btn-ayuda {
+            background-color: #60a5fa;
+            color: white;
+            box-shadow: 0 4px 0 #1e3a8a;
+        }
+
+        /* Área del rompecabezas */
+        #workspace {
+            position: relative;
+            width: 320px;
+            height: 560px;
+            touch-action: none;
+        }
+
+        #board {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 300px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 4px dashed #94a3b8;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        /* Imagen del rompecabezas codificada de forma segura para cualquier navegador */
+        :root {
+            --puzzle-img: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Crect width='300' height='200' fill='%23a7f3d0' rx='15' /%3E%3Crect x='30' y='30' width='120' height='120' rx='15' fill='%23ef4444' stroke='%237f1d1d' stroke-width='4'/%3E%3Ccircle cx='60' cy='60' r='12' fill='white'/%3E%3Ccircle cx='120' cy='120' r='12' fill='white'/%3E%3Ccircle cx='90' cy='90' r='12' fill='white'/%3E%3Ccircle cx='60' cy='120' r='12' fill='white'/%3E%3Ccircle cx='120' cy='60' r='12' fill='white'/%3E%3Ctext x='165' y='115' font-family='Arial, sans-serif' font-size='45' font-weight='900' fill='%233b82f6' stroke='white' stroke-width='5' stroke-linejoin='round'%3EDADO%3C/text%3E%3Ctext x='165' y='115' font-family='Arial, sans-serif' font-size='45' font-weight='900' fill='%233b82f6'%3EDADO%3C/text%3E%3C/svg%3E");
+        }
+
+        .piece {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            background-image: var(--puzzle-img);
+            background-size: 300px 200px;
+            border: 2px solid white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: grab;
+            transition: transform 0.1s ease;
+            z-index: 10;
+        }
+
+        /* Animaciones físicas */
+        .piece.dragging {
+            z-index: 50;
+            transform: scale(1.15) rotate(3deg);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            cursor: grabbing;
+        }
+
+        @keyframes snap-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1) rotate(-3deg); }
+            100% { transform: scale(1); }
+        }
+
+        .piece.snapped {
+            box-shadow: none;
+            border: 1px dashed rgba(255,255,255,0.4);
+            pointer-events: none;
+            z-index: 5;
+            animation: snap-pulse 0.3s ease-out forwards;
+        }
+
+        /* Modal de Ayuda (Guía visual) */
+        #hintModal {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            width: 300px;
+            height: 200px;
+            background-image: var(--puzzle-img);
+            background-size: 300px 200px;
+            border-radius: 12px;
+            z-index: 100;
+            border: 4px solid #3b82f6;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            animation: fade-in 0.2s ease-out;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .btn-cerrar {
+            background-color: #ef4444;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 50px;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            margin-bottom: -20px;
+            position: relative;
+            z-index: 101;
+        }
+
+        /* Pantalla de Victoria */
+        #winMessage {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .win-box {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            animation: bounce 0.5s ease-out;
+        }
+
+        @keyframes bounce {
+            0% { transform: scale(0.5); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        .win-title { color: #22c55e; font-size: 32px; margin: 0 0 10px 0; }
+        .win-subtitle { color: #374151; font-size: 20px; margin: 0 0 20px 0; font-weight: bold; }
+        .btn-jugar { background-color: #22c55e; color: white; box-shadow: 0 4px 0 #166534; font-size: 18px;}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button id="btnEscuchar" class="btn-escuchar">🔊 Palabra</button>
+        <button id="btnAyuda" class="btn-ayuda">💡 Ver Guía</button>
+    </div>
+
+    <div id="workspace">
+        <div id="board"></div>
+
+        <div id="hintModal">
+            <button id="btnCerrarAyuda" class="btn-cerrar">Cerrar ❌</button>
+        </div>
+    </div>
+
+    <div id="winMessage">
+        <div class="win-box">
+            <h1 class="win-title">¡Excelente! 🎉</h1>
+            <p class="win-subtitle">Armaste el DADO</p>
+            <button onclick="location.reload()" class="btn-jugar">Jugar de Nuevo 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        const workspace = document.getElementById('workspace');
+        const hintModal = document.getElementById('hintModal');
+        let activePiece = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let snappedCount = 0;
+        const totalPieces = 6;
+
+        // Cuadrícula 3x2
+        const grid = [
+            { x: 0, y: 0 }, { x: 100, y: 0 }, { x: 200, y: 0 },
+            { x: 0, y: 100 }, { x: 100, y: 100 }, { x: 200, y: 100 }
+        ];
+
+        function initGame() {
+            grid.forEach((pos) => {
+                const piece = document.createElement('div');
+                piece.classList.add('piece');
+                piece.style.backgroundPosition = `-${pos.x}px -${pos.y}px`;
+                piece.dataset.targetX = pos.x + 10; 
+                piece.dataset.targetY = pos.y + 20; 
+                
+                // Dispersión aleatoria abajo
+                const startX = Math.random() * (320 - 100);
+                const startY = 250 + Math.random() * (560 - 250 - 100);
+                piece.style.left = `${startX}px`;
+                piece.style.top = `${startY}px`;
+                
+                piece.addEventListener('pointerdown', dragStart);
+                workspace.appendChild(piece);
+            });
+            setTimeout(() => pronunciar("Arma el dado"), 500);
+        }
+
+        function dragStart(e) {
+            activePiece = e.target;
+            const rect = activePiece.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            activePiece.classList.add('dragging');
+        }
+
+        window.addEventListener('pointermove', (e) => {
+            if (!activePiece) return;
+            e.preventDefault();
+            const parentRect = workspace.getBoundingClientRect();
+            let newLeft = e.clientX - parentRect.left - offsetX;
+            let newTop = e.clientY - parentRect.top - offsetY;
+            activePiece.style.left = `${newLeft}px`;
+            activePiece.style.top = `${newTop}px`;
+        });
+
+        window.addEventListener('pointerup', () => {
+            if (!activePiece) return;
+            const piece = activePiece;
+            activePiece = null;
+            piece.classList.remove('dragging');
+            
+            const targetX = parseInt(piece.dataset.targetX);
+            const targetY = parseInt(piece.dataset.targetY);
+            const currentX = parseFloat(piece.style.left);
+            const currentY = parseFloat(piece.style.top);
+            
+            const dist = Math.hypot(targetX - currentX, targetY - currentY);
+            
+            if (dist < 35) { // Imán para ayudar a encajar
+                piece.style.left = `${targetX}px`;
+                piece.style.top = `${targetY}px`;
+                piece.classList.add('snapped');
+                piece.removeEventListener('pointerdown', dragStart);
+                snappedCount++;
+                
+                if (snappedCount === totalPieces) {
+                    setTimeout(winGame, 400);
+                } else {
+                    pronunciar("Bien");
+                }
+            }
+        });
+
+        // Botones de interacción
+        document.getElementById('btnAyuda').addEventListener('click', () => {
+            hintModal.style.display = 'flex';
+        });
+
+        document.getElementById('btnCerrarAyuda').addEventListener('click', () => {
+            hintModal.style.display = 'none';
+        });
+
+        document.getElementById('btnEscuchar').addEventListener('click', () => {
+            pronunciar("Dado");
+        });
+
+        function pronunciar(texto) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(texto);
+                utterance.lang = 'es-MX';
+                utterance.rate = 0.9;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function winGame() {
+            document.getElementById('winMessage').style.display = 'flex';
+            pronunciar("¡Felicidades! Armaste el Dado.");
+        }
+
+        // Service Worker Integrado
+        const swBlob = new Blob([`
+            self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+            self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+            self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+        `], { type: 'application/javascript' });
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+        }
+
+        window.onload = initGame;
+    </script>
+
+<script>
+/* Enlace con la PWA unificada (no altera el juego) */
+(function(){
+  var orig = winGame, enviado = false;
+  winGame = function(){
+    orig();
+    var b = document.querySelector('.btn-jugar'); if (b) b.style.display = 'none';
+    if (enviado) return; enviado = true;
+    setTimeout(function(){ parent.postMessage({tipo:'fin', actividad:2, fallas:0}, '*'); }, 3200);
+  };
+})();
+</script>
+</body>
+</html>
